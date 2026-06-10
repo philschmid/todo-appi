@@ -1,215 +1,340 @@
-import { useEffect } from 'react';
-import { useTodoStore } from './store/useTodoStore';
-import TaskInput from './components/TaskInput';
-import TaskList from './components/TaskList';
-import TimerPanel from './components/TimerPanel';
-import FeatureLab from './components/FeatureLab';
-import AnalyticsView from './components/AnalyticsView';
-import ThemeSelector from './components/ThemeSelector';
-import KeyboardShortcuts from './components/KeyboardShortcuts';
-import CommandBar from './components/CommandBar';
-import { MagnifyingGlass, Broom, Sparkle } from '@phosphor-icons/react';
+import React, { useState, useEffect } from 'react';
+import { useTodoStore, type Task } from './store/useTodoStore';
 
 export default function App() {
   const {
     tasks,
     filter,
+    selectedCategory,
+    focusTaskId,
+    addTask,
+    deleteTask,
+    toggleTask,
     setFilter,
-    searchQuery,
-    setSearchQuery,
-    clearCompleted,
-    theme,
-    accentColor,
-    features
+    setSelectedCategory,
+    setFocusTaskId,
+    clearCompleted
   } = useTodoStore();
 
-  // Initialize Theme class on document Element
+  const [inputValue, setInputValue] = useState('');
+  const [inputCategory, setInputCategory] = useState<Task['category']>('work');
+  const [inputPriority, setInputPriority] = useState<Task['priority']>('none');
+
+  // Shortcut key to focus input on "/"
   useEffect(() => {
-    if (theme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  }, [theme]);
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const activeEl = document.activeElement;
+      if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA')) return;
+      
+      if (e.key === '/') {
+        e.preventDefault();
+        const mainInput = document.getElementById('main-task-input');
+        if (mainInput) mainInput.focus();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
-  // Count helper functions for filters
-  const todayStr = new Date().toISOString().split('T')[0];
-  const countAll = tasks.length;
-  const countActive = tasks.filter((t) => !t.completed).length;
-  const countCompleted = tasks.filter((t) => t.completed).length;
-  const countToday = tasks.filter((t) => t.dueDate === todayStr && !t.completed).length;
-  const countUpcoming = tasks.filter((t) => t.dueDate > todayStr && !t.completed).length;
-
-  // Color Maps
-  const accentTextMap = {
-    rose: 'text-rose-500 dark:text-rose-400',
-    cobalt: 'text-blue-500 dark:text-blue-400',
-    emerald: 'text-emerald-500 dark:text-emerald-400',
-    violet: 'text-violet-500 dark:text-violet-400',
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!inputValue.trim()) return;
+    addTask(inputValue, inputCategory, inputPriority);
+    setInputValue('');
+    setInputPriority('none');
   };
 
-  const accentBgMap = {
-    rose: 'bg-rose-500 text-white',
-    cobalt: 'bg-blue-500 text-white',
-    emerald: 'bg-emerald-500 text-white',
-    violet: 'bg-violet-500 text-white',
+  // Filter tasks based on simple criteria
+  const getFilteredTasks = () => {
+    return tasks.filter((task) => {
+      const matchesFilter =
+        filter === 'all' ||
+        (filter === 'active' && !task.completed) ||
+        (filter === 'completed' && task.completed);
+      
+      const matchesCategory =
+        selectedCategory === 'all' || task.category === selectedCategory;
+
+      return matchesFilter && matchesCategory;
+    });
   };
+
+  const filteredTasks = getFilteredTasks();
+  const activeTaskCount = tasks.filter((t) => !t.completed).length;
+  const completedTaskCount = tasks.filter((t) => t.completed).length;
+
+  const categoryPills: Record<Task['category'], { bg: string; text: string }> = {
+    urgent: { bg: 'bg-[#FDEBEC]', text: 'text-[#9F2F2D]' },
+    work: { bg: 'bg-[#E1F3FE]', text: 'text-[#1F6C9F]' },
+    personal: { bg: 'bg-[#EDF3EC]', text: 'text-[#346538]' },
+    ideas: { bg: 'bg-[#FBF3DB]', text: 'text-[#956400]' }
+  };
+
+  const priorityLabels = {
+    high: 'High',
+    medium: 'Medium',
+    low: 'Low',
+    none: 'No Priority'
+  };
+
+  // If focus mode is active, fetch focused task
+  const focusedTask = tasks.find(t => t.id === focusTaskId);
 
   return (
-    <div className="min-h-screen pb-16 transition-colors duration-200">
+    <div className="max-w-[700px] mx-auto px-6 py-16 sm:py-24 selection:bg-[#E1F3FE] selection:text-[#1F6C9F]">
       
-      {/* Decorative Aurora Background glow (restrained, no slop) */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-[350px] pointer-events-none overflow-hidden opacity-30 dark:opacity-20 z-0">
-        <div className={`absolute -top-40 left-1/4 w-[500px] h-[300px] rounded-full blur-[120px] transition-colors duration-500 ${
-          accentColor === 'rose'
-            ? 'bg-rose-300 dark:bg-rose-950'
-            : accentColor === 'cobalt'
-            ? 'bg-blue-300 dark:bg-blue-950'
-            : accentColor === 'emerald'
-            ? 'bg-emerald-300 dark:bg-emerald-950'
-            : 'bg-violet-300 dark:bg-violet-950'
-        }`} />
-      </div>
+      {/* Editorial Header */}
+      <header className="mb-14">
+        <h1 className="font-serif text-5xl md:text-6xl italic tracking-tight text-[#111111] leading-none mb-3">
+          Workspace
+        </h1>
+        <p className="text-xs font-mono uppercase tracking-wider text-[#787774]">
+          A calm, desaturated writing space. Press <kbd className="bg-white px-1.5 py-0.5 rounded border border-[#EAEAEA] text-[10px] font-sans font-semibold">/</kbd> to draft.
+        </p>
+      </header>
 
-      <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        
-        {/* Navigation Bar */}
-        <header className="h-16 flex items-center justify-between border-b border-zinc-200/50 dark:border-zinc-800/50 mb-8">
-          <div className="flex items-center gap-2.5">
-            <div className={`p-1.5 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200/40 dark:border-zinc-800 shadow-xs`}>
-              <Sparkle size={16} className={accentTextMap[accentColor]} weight="fill" />
+      {focusedTask ? (
+        /* DISTRACTION-FREE FOCUS MODE */
+        <main className="animate-fadeIn">
+          <div className="bg-white border border-[#EAEAEA] rounded-xl p-8 md:p-12 mb-8 text-center min-h-[250px] flex flex-col justify-between">
+            <div className="flex justify-center gap-2 mb-4">
+              <span className={`text-[10px] uppercase font-mono tracking-wider px-2 py-0.5 rounded ${categoryPills[focusedTask.category].bg} ${categoryPills[focusedTask.category].text}`}>
+                {focusedTask.category}
+              </span>
+              {focusedTask.priority !== 'none' && (
+                <span className="text-[10px] uppercase font-mono tracking-wider px-2 py-0.5 rounded bg-[#F7F6F3] text-[#787774] border border-[#EAEAEA]">
+                  {focusedTask.priority}
+                </span>
+              )}
             </div>
-            <div>
-              <span className="text-sm font-bold tracking-tight text-zinc-900 dark:text-zinc-50 font-sans">
-                Todo.Lab
-              </span>
-              <span className="text-[9px] uppercase font-bold bg-zinc-100 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-650 px-1.5 py-0.5 rounded-sm border border-zinc-200/20 ml-2">
-                Beta
-              </span>
+
+            <h2 className={`font-serif text-3xl md:text-4xl italic text-[#111111] leading-snug my-auto px-4 ${focusedTask.completed ? 'line-through text-[#787774]/70' : ''}`}>
+              "{focusedTask.text}"
+            </h2>
+
+            <div className="flex justify-center gap-6 mt-6">
+              <button
+                onClick={() => toggleTask(focusedTask.id)}
+                className="text-xs font-mono text-[#787774] hover:text-[#111111] transition-colors cursor-pointer"
+              >
+                {focusedTask.completed ? 'Mark Active' : 'Mark Completed'}
+              </button>
+              <span className="text-[#EAEAEA] font-mono text-xs">|</span>
+              <button
+                onClick={() => setFocusTaskId(null)}
+                className="text-xs font-mono text-[#787774] hover:text-[#111111] transition-colors cursor-pointer"
+              >
+                Exit Focus Mode
+              </button>
             </div>
           </div>
-
-          <div className="flex items-center gap-3">
-            {features.commandBar && <CommandBar />}
-            {features.keyboardShortcuts && <KeyboardShortcuts />}
-            <ThemeSelector />
-          </div>
-        </header>
-
-        {/* Dashboard Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+        </main>
+      ) : (
+        /* STANDARD WORKSPACE LAYOUT */
+        <main className="space-y-10">
           
-          {/* PRIMARY COLUMN: Tasks */}
-          <main className="lg:col-span-2 space-y-6">
-            
-            {/* Search and Input Container */}
-            <div className="bg-white dark:bg-zinc-900/40 border border-zinc-200/40 dark:border-zinc-800/40 rounded-2xl p-5 shadow-xs backdrop-blur-xs">
-              <div className="flex flex-col gap-4">
-                
-                {/* Search field */}
-                <div className="relative flex items-center bg-zinc-50 dark:bg-zinc-950 border border-zinc-200/60 dark:border-zinc-800/50 rounded-xl px-3 py-1.5 focus-within:border-zinc-300 dark:focus-within:border-zinc-700 transition-all">
-                  <MagnifyingGlass size={14} className="text-zinc-400 dark:text-zinc-600 mr-2 shrink-0" />
-                  <input
-                    type="text"
-                    id="search-input"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search tasks or tags... (Press '/' to focus)"
-                    className="flex-1 bg-transparent border-0 outline-none text-zinc-850 dark:text-zinc-200 placeholder-zinc-400 dark:placeholder-zinc-700 text-xs py-0.5"
-                  />
-                  {searchQuery && (
-                    <button
-                      onClick={() => setSearchQuery('')}
-                      className="text-[10px] text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 font-mono px-1.5 rounded cursor-pointer"
+          {/* Bento-style Task Form */}
+          <section className="bg-white border border-[#EAEAEA] rounded-xl p-5 shadow-xs">
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <input
+                type="text"
+                id="main-task-input"
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                placeholder="Draft a new task..."
+                className="w-full bg-transparent border-0 outline-none text-sm text-[#111111] placeholder-[#787774]/60 py-1"
+              />
+
+              {/* Categorization Strip */}
+              <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-[#F9F9F8]">
+                <div className="flex flex-wrap items-center gap-4 text-xs font-mono text-[#787774]">
+                  {/* Category select */}
+                  <div className="flex items-center gap-1.5">
+                    <span>Category:</span>
+                    <select
+                      value={inputCategory}
+                      onChange={(e) => setInputCategory(e.target.value as Task['category'])}
+                      className="bg-transparent border-0 outline-none text-[#111111] font-semibold cursor-pointer"
                     >
-                      clear
-                    </button>
-                  )}
+                      <option value="work">Work</option>
+                      <option value="personal">Personal</option>
+                      <option value="urgent">Urgent</option>
+                      <option value="ideas">Ideas</option>
+                    </select>
+                  </div>
+
+                  {/* Priority select */}
+                  <div className="flex items-center gap-1.5">
+                    <span>Priority:</span>
+                    <select
+                      value={inputPriority}
+                      onChange={(e) => setInputPriority(e.target.value as Task['priority'])}
+                      className="bg-transparent border-0 outline-none text-[#111111] font-semibold cursor-pointer"
+                    >
+                      <option value="none">None</option>
+                      <option value="low">Low</option>
+                      <option value="medium">Medium</option>
+                      <option value="high">High</option>
+                    </select>
+                  </div>
                 </div>
 
-                {/* Main input */}
-                <TaskInput />
+                <button
+                  type="submit"
+                  className="px-4 py-1.5 rounded bg-[#111111] text-white text-xs font-mono hover:bg-[#2F3437] transition-colors cursor-pointer active:scale-95"
+                >
+                  Create
+                </button>
               </div>
-            </div>
+            </form>
+          </section>
 
-            {/* Filter Navigation & Tasks Container */}
-            <div className="space-y-4">
-              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200/50 dark:border-zinc-800/50 pb-3">
+          {/* Filtering Bars */}
+          <section className="space-y-3">
+            
+            {/* Category Filter row */}
+            <div className="flex flex-wrap gap-2 pb-2 border-b border-[#EAEAEA]">
+              {(['all', 'work', 'personal', 'urgent', 'ideas'] as const).map((cat) => {
+                const isActive = selectedCategory === cat;
+                const pastel = cat !== 'all' ? categoryPills[cat] : null;
                 
-                {/* Filters Row */}
-                <div className="flex flex-wrap gap-1.5">
-                  {([
-                    { id: 'all', label: 'All', count: countAll },
-                    { id: 'active', label: 'Active', count: countActive },
-                    { id: 'completed', label: 'Done', count: countCompleted },
-                    { id: 'today', label: 'Today', count: countToday },
-                    { id: 'upcoming', label: 'Upcoming', count: countUpcoming }
-                  ] as const).map((item) => {
-                    const isSelected = filter === item.id;
-                    return (
-                      <button
-                        key={item.id}
-                        onClick={() => setFilter(item.id)}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                          isSelected
-                            ? `${accentBgMap[accentColor]} shadow-xs`
-                            : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-900/50'
-                        }`}
-                      >
-                        <span>{item.label}</span>
-                        <span className={`px-1 py-0.2 rounded-md text-[9px] font-mono font-bold ${
-                          isSelected 
-                            ? 'bg-white/20 text-white' 
-                            : 'bg-zinc-100 dark:bg-zinc-950 text-zinc-400 dark:text-zinc-650 border border-zinc-200/10'
-                        }`}>
-                          {item.count}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {/* Clear Completed Action */}
-                {countCompleted > 0 && (
+                return (
                   <button
-                    onClick={clearCompleted}
-                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs text-zinc-400 dark:text-zinc-600 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/5 transition-colors cursor-pointer select-none"
-                    title="Remove all completed tasks"
+                    key={cat}
+                    onClick={() => setSelectedCategory(cat)}
+                    className={`px-3 py-1 rounded text-xs font-mono transition-colors cursor-pointer ${
+                      isActive
+                        ? pastel
+                          ? `${pastel.bg} ${pastel.text} font-bold`
+                          : 'bg-[#111111] text-white'
+                        : 'text-[#787774] hover:text-[#111111]'
+                    }`}
                   >
-                    <Broom size={13} />
-                    <span>Clear completed</span>
+                    {cat === 'all' ? 'All categories' : cat}
                   </button>
-                )}
-              </div>
-
-              {/* Tasks List */}
-              <TaskList />
+                );
+              })}
             </div>
 
-          </main>
+            {/* Completion Filter row */}
+            <div className="flex justify-between items-center text-xs font-mono text-[#787774]">
+              <div className="flex gap-4">
+                {(['all', 'active', 'completed'] as const).map((f) => {
+                  const isActive = filter === f;
+                  return (
+                    <button
+                      key={f}
+                      onClick={() => setFilter(f)}
+                      className={`hover:text-[#111111] transition-colors cursor-pointer ${isActive ? 'text-[#111111] font-bold underline underline-offset-4' : ''}`}
+                    >
+                      {f.charAt(0).toUpperCase() + f.slice(1)}
+                    </button>
+                  );
+                })}
+              </div>
 
-          {/* SECONDARY SIDEBAR: Laboratory (Pomodoro, FeatureLab, Analytics) */}
-          <aside className="space-y-6">
-            {features.pomodoro && <TimerPanel />}
-            {features.analytics && <AnalyticsView />}
-            <FeatureLab />
-          </aside>
+              {completedTaskCount > 0 && (
+                <button
+                  onClick={clearCompleted}
+                  className="hover:text-red-700 transition-colors cursor-pointer"
+                >
+                  Clear completed ({completedTaskCount})
+                </button>
+              )}
+            </div>
 
-        </div>
+          </section>
 
-        {/* Footer */}
-        <footer className="mt-20 border-t border-zinc-250/20 dark:border-zinc-800/40 pt-6 flex flex-col sm:flex-row justify-between items-center gap-4 text-xs text-zinc-400 dark:text-zinc-650">
-          <div className="flex items-center gap-2">
-            <span>Todo.Lab · Crafted under Apache-2.0</span>
-          </div>
-          <div className="flex gap-4">
-            <a href="https://github.com/philschmid/todo-appi" target="_blank" className="hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors">
-              GitHub Repository
-            </a>
-          </div>
-        </footer>
+          {/* Task List container */}
+          <section className="bg-white border border-[#EAEAEA] rounded-xl overflow-hidden divide-y divide-[#EAEAEA]">
+            {filteredTasks.length === 0 ? (
+              <div className="py-12 text-center text-xs text-[#787774] font-mono">
+                No items to display.
+              </div>
+            ) : (
+              filteredTasks.map((task) => (
+                <div
+                  key={task.id}
+                  className="flex items-center justify-between gap-4 p-4 hover:bg-[#FBFBFA] transition-colors group"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    {/* Checkbox circle */}
+                    <button
+                      onClick={() => toggleTask(task.id)}
+                      className="w-4 h-4 rounded-full border border-[#787774]/40 flex items-center justify-center shrink-0 hover:border-[#111111] transition-colors cursor-pointer"
+                      title={task.completed ? 'Mark active' : 'Mark completed'}
+                    >
+                      {task.completed && (
+                        <span className="w-2 h-2 rounded-full bg-[#111111]" />
+                      )}
+                    </button>
 
-      </div>
+                    {/* Task Title */}
+                    <span className={`text-sm text-[#111111] truncate ${task.completed ? 'line-through text-[#787774]/70' : ''}`}>
+                      {task.text}
+                    </span>
+
+                    {/* Category Label */}
+                    <span className={`text-[10px] uppercase font-mono tracking-wider px-1.5 py-0.5 rounded shrink-0 ${categoryPills[task.category].bg} ${categoryPills[task.category].text}`}>
+                      {task.category}
+                    </span>
+
+                    {/* Priority label if set */}
+                    {task.priority !== 'none' && !task.completed && (
+                      <span className="text-[10px] font-mono text-[#787774] shrink-0">
+                        · {priorityLabels[task.priority]}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Actions strip */}
+                  <div className="flex items-center gap-3 shrink-0">
+                    {/* Focus Mode button */}
+                    {!task.completed && (
+                      <button
+                        onClick={() => setFocusTaskId(task.id)}
+                        className="text-[11px] font-mono text-[#787774] hover:text-[#111111] opacity-0 group-hover:opacity-100 transition-all cursor-pointer"
+                        title="Enter Focus Mode"
+                      >
+                        focus
+                      </button>
+                    )}
+                    
+                    {/* Delete button */}
+                    <button
+                      onClick={() => deleteTask(task.id)}
+                      className="text-[11px] font-mono text-[#787774] hover:text-red-700 opacity-0 group-hover:opacity-100 transition-all cursor-pointer"
+                      title="Delete task"
+                    >
+                      delete
+                    </button>
+                  </div>
+
+                </div>
+              ))
+            )}
+          </section>
+
+          {/* Counts metrics */}
+          <footer className="text-right text-[11px] font-mono text-[#787774]">
+            {activeTaskCount} active tasks remaining
+          </footer>
+
+        </main>
+      )}
+
+      {/* Footer Branding */}
+      <footer className="mt-24 pt-6 border-t border-[#EAEAEA] flex justify-between items-center text-[10px] font-mono text-[#787774]">
+        <span>Workspace · Minimalist UI</span>
+        <a
+          href="https://github.com/philschmid/todo-appi"
+          target="_blank"
+          className="hover:text-[#111111] underline transition-colors"
+        >
+          GitHub
+        </a>
+      </footer>
+
     </div>
   );
 }
