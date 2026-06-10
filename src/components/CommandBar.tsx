@@ -70,9 +70,9 @@ export default function CommandBar() {
     if (isOpen) {
       setTimeout(() => {
         inputRef.current?.focus();
+        setSelectedIndex(0);
+        setValue('');
       }, 50);
-      setSelectedIndex(0);
-      setValue('');
     }
   }, [isOpen]);
 

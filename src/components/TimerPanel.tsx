@@ -22,7 +22,7 @@ export default function TimerPanel() {
 
   // Tick the timer every second if active
   useEffect(() => {
-    let interval: any = null;
+    let interval: ReturnType<typeof setInterval> | null = null;
     if (timerActive) {
       interval = setInterval(() => {
         tickTimer();

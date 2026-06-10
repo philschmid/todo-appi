@@ -409,8 +409,8 @@ export const useTodoStore = create<TodoStore>((set, get) => ({
       // Timer finished!
       if (features.sounds) playSound('timer');
       
-      let nextMode: 'pomodoro' | 'shortBreak' | 'longBreak' = 'pomodoro';
-      let nextSeconds = 25 * 60;
+      let nextMode: 'pomodoro' | 'shortBreak' | 'longBreak';
+      let nextSeconds: number;
 
       if (timerMode === 'pomodoro') {
         nextMode = 'shortBreak';
@@ -439,7 +439,7 @@ export const useTodoStore = create<TodoStore>((set, get) => ({
 
   resetTimer: () => {
     const { timerMode, activeTaskId, tasks } = get();
-    let seconds = 25 * 60;
+    let seconds: number;
     if (timerMode === 'pomodoro') {
       const activeTask = tasks.find(t => t.id === activeTaskId);
       seconds = activeTask?.duration ? activeTask.duration * 60 : 25 * 60;
@@ -453,7 +453,7 @@ export const useTodoStore = create<TodoStore>((set, get) => ({
   },
 
   setTimerMode: (timerMode) => {
-    let seconds = 25 * 60;
+    let seconds: number;
     if (timerMode === 'pomodoro') {
       const activeTask = get().tasks.find(t => t.id === get().activeTaskId);
       seconds = activeTask?.duration ? activeTask.duration * 60 : 25 * 60;
@@ -478,7 +478,9 @@ export const useTodoStore = create<TodoStore>((set, get) => ({
   // Audio Synthesizer (No external asset files needed, works offline instantly)
   playSound: (type) => {
     try {
-      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const AudioContextClass = window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      if (!AudioContextClass) return;
+      const ctx = new AudioContextClass();
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.connect(gain);

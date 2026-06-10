@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useTodoStore, parseNaturalLanguage } from '../store/useTodoStore';
 import { Plus, Tag, CalendarBlank, Flag, Clock, Sparkle } from '@phosphor-icons/react';
 
@@ -8,22 +8,16 @@ export default function TaskInput() {
   const accentColor = useTodoStore((state) => state.accentColor);
   
   const [value, setValue] = useState('');
-  const [preview, setPreview] = useState<ReturnType<typeof parseNaturalLanguage> | null>(null);
 
-  useEffect(() => {
-    if (nlpEnabled && value.trim()) {
-      setPreview(parseNaturalLanguage(value));
-    } else {
-      setPreview(null);
-    }
-  }, [value, nlpEnabled]);
+  const preview = (nlpEnabled && value.trim())
+    ? parseNaturalLanguage(value)
+    : null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!value.trim()) return;
     addTask(value);
     setValue('');
-    setPreview(null);
   };
 
   // Accent styles map

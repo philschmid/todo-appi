@@ -19,6 +19,18 @@ const itemVariants = {
   exit: { opacity: 0, x: -10, transition: { duration: 0.15 } }
 };
 
+const formatDueDate = (dateStr: string) => {
+  if (!dateStr) return '';
+  const todayStr = new Date().toISOString().split('T')[0];
+  const tomorrowStr = new Date(Date.now() + 86400000).toISOString().split('T')[0];
+
+  if (dateStr === todayStr) return 'Today';
+  if (dateStr === tomorrowStr) return 'Tomorrow';
+
+  const date = new Date(dateStr + 'T00:00:00');
+  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+};
+
 export default function TaskList() {
   const {
     tasks,
@@ -99,17 +111,7 @@ export default function TaskList() {
     violet: 'border-violet-500 dark:border-violet-400',
   };
 
-  const formatDueDate = (dateStr: string) => {
-    if (!dateStr) return '';
-    const todayStr = new Date().toISOString().split('T')[0];
-    const tomorrowStr = new Date(Date.now() + 86400000).toISOString().split('T')[0];
 
-    if (dateStr === todayStr) return 'Today';
-    if (dateStr === tomorrowStr) return 'Tomorrow';
-
-    const date = new Date(dateStr + 'T00:00:00');
-    return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-  };
 
   const renderEmptyState = () => {
     let title = "No tasks found";

@@ -51,16 +51,18 @@ export default function KeyboardShortcuts() {
       }
 
       switch (e.key.toLowerCase()) {
-        case '/':
+        case '/': {
           e.preventDefault();
           const searchInput = document.getElementById('search-input');
           if (searchInput) searchInput.focus();
           break;
-        case 'n':
+        }
+        case 'n': {
           e.preventDefault();
           const taskInput = document.querySelector('form input[type="text"]') as HTMLInputElement;
           if (taskInput) taskInput.focus();
           break;
+        }
         case 'a':
           setFilter('all');
           break;
@@ -82,11 +84,12 @@ export default function KeyboardShortcuts() {
         case 'r':
           resetTimer();
           break;
-        case 'k':
+        case 'k': {
           // Let CommandBar handle it, but can be a fallback
           const cmdBarInput = document.getElementById('command-bar-input');
           if (cmdBarInput) cmdBarInput.focus();
           break;
+        }
         case '?':
           setIsOpen((prev) => !prev);
           break;
