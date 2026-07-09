@@ -26,6 +26,13 @@
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Geist Sans", "Helvetica Neue", sans-serif;
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
+    transition: background-color 0.2s ease, color 0.2s ease;
+  }
+
+  /* Custom class overrides for dark mode style */
+  .dark body {
+    background-color: #121212;
+    color: #E0E0E0;
   }
 
   /* Custom input reset */
@@ -44,5 +51,8 @@
   ::-webkit-scrollbar-thumb {
     background: #E0DFDB;
     border-radius: 2px;
+  }
+  .dark ::-webkit-scrollbar-thumb {
+    background: #333333;
   }
 }

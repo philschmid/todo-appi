@@ -21,6 +21,7 @@ interface TodoStore {
   addTask: (text: string, category: Task['category'], priority: Task['priority']) => void;
   deleteTask: (id: string) => void;
   toggleTask: (id: string) => void;
+  updateTaskText: (id: string, text: string) => void;
   setFilter: (filter: FilterType) => void;
   setSelectedCategory: (category: 'all' | Task['category']) => void;
   setFocusTaskId: (id: string | null) => void;
@@ -34,7 +35,7 @@ const defaultTasks: Task[] = [
     completed: false,
     priority: 'high',
     category: 'work',
-    createdAt: new Date().toISOString()
+    createdAt: new Date(Date.now() - 3600000 * 2).toISOString() // 2 hours ago
   },
   {
     id: '2',
@@ -42,7 +43,7 @@ const defaultTasks: Task[] = [
     completed: false,
     priority: 'medium',
     category: 'ideas',
-    createdAt: new Date().toISOString()
+    createdAt: new Date(Date.now() - 3600000).toISOString() // 1 hour ago
   },
   {
     id: '3',
@@ -50,7 +51,7 @@ const defaultTasks: Task[] = [
     completed: true,
     priority: 'low',
     category: 'personal',
-    createdAt: new Date().toISOString()
+    createdAt: new Date().toISOString() // Now
   }
 ];
 
@@ -98,6 +99,15 @@ export const useTodoStore = create<TodoStore>((set) => ({
   toggleTask: (id) => {
     set((state) => {
       const updated = state.tasks.map((t) => (t.id === id ? { ...t, completed: !t.completed } : t));
+      localStorage.setItem('minimal_todo_tasks', JSON.stringify(updated));
+      return { tasks: updated };
+    });
+  },
+
+  updateTaskText: (id, text) => {
+    if (!text.trim()) return;
+    set((state) => {
+      const updated = state.tasks.map((t) => (t.id === id ? { ...t, text: text.trim() } : t));
       localStorage.setItem('minimal_todo_tasks', JSON.stringify(updated));
       return { tasks: updated };
     });
