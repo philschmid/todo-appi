@@ -19,6 +19,7 @@ export default function App() {
   const [inputValue, setInputValue] = useState('');
   const [inputCategory, setInputCategory] = useState<Task['category']>('work');
   const [inputPriority, setInputPriority] = useState<Task['priority']>('none');
+  const [hideCompleted, setHideCompleted] = useState<boolean>(false);
 
   // Shortcut key to focus input on "/"
   useEffect(() => {
@@ -44,9 +45,14 @@ export default function App() {
     setInputPriority('none');
   };
 
-  // Filter tasks based on simple criteria
+  // Filter tasks based on criteria
   const getFilteredTasks = () => {
     return tasks.filter((task) => {
+      // If "Hide Completed" is active, filter out completed tasks
+      if (hideCompleted && task.completed) {
+        return false;
+      }
+
       const matchesFilter =
         filter === 'all' ||
         (filter === 'active' && !task.completed) ||
@@ -192,28 +198,41 @@ export default function App() {
           {/* Filtering Bars */}
           <section className="space-y-3">
             
-            {/* Category Filter row */}
-            <div className="flex flex-wrap gap-2 pb-2 border-b border-[#EAEAEA]">
-              {(['all', 'work', 'personal', 'urgent', 'ideas'] as const).map((cat) => {
-                const isActive = selectedCategory === cat;
-                const pastel = cat !== 'all' ? categoryPills[cat] : null;
-                
-                return (
-                  <button
-                    key={cat}
-                    onClick={() => setSelectedCategory(cat)}
-                    className={`px-3 py-1 rounded text-xs font-mono transition-colors cursor-pointer ${
-                      isActive
-                        ? pastel
-                          ? `${pastel.bg} ${pastel.text} font-bold`
-                          : 'bg-[#111111] text-white'
-                        : 'text-[#787774] hover:text-[#111111]'
-                    }`}
-                  >
-                    {cat === 'all' ? 'All categories' : cat}
-                  </button>
-                );
-              })}
+            {/* Category Filter row with "Hide Completed" toggle checkbox */}
+            <div className="flex flex-wrap items-center justify-between gap-4 pb-2 border-b border-[#EAEAEA]">
+              <div className="flex flex-wrap gap-2">
+                {(['all', 'work', 'personal', 'urgent', 'ideas'] as const).map((cat) => {
+                  const isActive = selectedCategory === cat;
+                  const pastel = cat !== 'all' ? categoryPills[cat] : null;
+                  
+                  return (
+                    <button
+                      key={cat}
+                      onClick={() => setSelectedCategory(cat)}
+                      className={`px-3 py-1 rounded text-xs font-mono transition-colors cursor-pointer ${
+                        isActive
+                          ? pastel
+                            ? `${pastel.bg} ${pastel.text} font-bold`
+                            : 'bg-[#111111] text-white'
+                          : 'text-[#787774] hover:text-[#111111]'
+                      }`}
+                    >
+                      {cat === 'all' ? 'All categories' : cat}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Hide Completed toggle next to category filters */}
+              <label className="flex items-center gap-2 text-xs font-mono text-[#787774] hover:text-[#111111] cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={hideCompleted}
+                  onChange={(e) => setHideCompleted(e.target.checked)}
+                  className="w-3.5 h-3.5 accent-[#111111] rounded border-[#787774]/40 cursor-pointer"
+                />
+                <span>Hide Completed</span>
+              </label>
             </div>
 
             {/* Completion Filter row */}
