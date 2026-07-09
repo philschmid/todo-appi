@@ -19,6 +19,7 @@ export default function App() {
   const [inputValue, setInputValue] = useState('');
   const [inputCategory, setInputCategory] = useState<Task['category']>('work');
   const [inputPriority, setInputPriority] = useState<Task['priority']>('none');
+  const [hideCompleted, setHideCompleted] = useState(false);
 
   // Shortcut key to focus input on "/"
   useEffect(() => {
@@ -55,7 +56,9 @@ export default function App() {
       const matchesCategory =
         selectedCategory === 'all' || task.category === selectedCategory;
 
-      return matchesFilter && matchesCategory;
+      const matchesHideCompleted = !hideCompleted || !task.completed;
+
+      return matchesFilter && matchesCategory && matchesHideCompleted;
     });
   };
 
@@ -81,7 +84,7 @@ export default function App() {
   const focusedTask = tasks.find(t => t.id === focusTaskId);
 
   return (
-    <div className="max-w-[700px] mx-auto px-6 py-16 sm:py-24 selection:bg-[#E1F3FE] selection:text-[#1F6C9F]">
+    <div className="max-w-[700px] mx-auto px-6 py-16 sm:py-24 selection:bg-[#E1F3FE] selection:text-[#1F6C9F]\">
       
       {/* Editorial Header */}
       <header className="mb-14">
@@ -89,7 +92,7 @@ export default function App() {
           Workspace
         </h1>
         <p className="text-xs font-mono uppercase tracking-wider text-[#787774]">
-          A calm, desaturated writing space. Press <kbd className="bg-white px-1.5 py-0.5 rounded border border-[#EAEAEA] text-[10px] font-sans font-semibold">/</kbd> to draft.
+          A calm, desaturated writing space. Press <kbd className="bg-white px-1.5 py-0.5 rounded border border-[#EAEAEA] text-[10px] font-sans font-semibold\">/</kbd> to draft.
         </p>
       </header>
 
@@ -193,27 +196,40 @@ export default function App() {
           <section className="space-y-3">
             
             {/* Category Filter row */}
-            <div className="flex flex-wrap gap-2 pb-2 border-b border-[#EAEAEA]">
-              {(['all', 'work', 'personal', 'urgent', 'ideas'] as const).map((cat) => {
-                const isActive = selectedCategory === cat;
-                const pastel = cat !== 'all' ? categoryPills[cat] : null;
-                
-                return (
-                  <button
-                    key={cat}
-                    onClick={() => setSelectedCategory(cat)}
-                    className={`px-3 py-1 rounded text-xs font-mono transition-colors cursor-pointer ${
-                      isActive
-                        ? pastel
-                          ? `${pastel.bg} ${pastel.text} font-bold`
-                          : 'bg-[#111111] text-white'
-                        : 'text-[#787774] hover:text-[#111111]'
-                    }`}
-                  >
-                    {cat === 'all' ? 'All categories' : cat}
-                  </button>
-                );
-              })}
+            <div className="flex flex-wrap items-center justify-between gap-4 pb-2 border-b border-[#EAEAEA]">
+              <div className="flex flex-wrap gap-2">
+                {(['all', 'work', 'personal', 'urgent', 'ideas'] as const).map((cat) => {
+                  const isActive = selectedCategory === cat;
+                  const pastel = cat !== 'all' ? categoryPills[cat] : null;
+                  
+                  return (
+                    <button
+                      key={cat}
+                      onClick={() => setSelectedCategory(cat)}
+                      className={`px-3 py-1 rounded text-xs font-mono transition-colors cursor-pointer ${
+                        isActive
+                          ? pastel
+                            ? `${pastel.bg} ${pastel.text} font-bold`
+                            : 'bg-[#111111] text-white'
+                          : 'text-[#787774] hover:text-[#111111]'
+                      }`}
+                    >
+                      {cat === 'all' ? 'All categories' : cat}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Hide Completed Toggle Checkbox */}
+              <label className="flex items-center gap-2 text-xs font-mono text-[#787774] hover:text-[#111111] cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={hideCompleted}
+                  onChange={(e) => setHideCompleted(e.target.checked)}
+                  className="w-3.5 h-3.5 rounded border border-[#787774]/40 accent-[#111111] cursor-pointer transition-colors"
+                />
+                <span>Hide Completed</span>
+              </label>
             </div>
 
             {/* Completion Filter row */}
